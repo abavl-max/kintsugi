@@ -1,5 +1,5 @@
 import React from 'react';
-import { User, Music } from 'lucide-react';
+import { User, Music, Play, Forward, Rewind } from 'lucide-react';
 // Helper to draw rounded rectangles, as canvas API lacks a native one.
 function drawRoundRect(ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, radius: number) {
   ctx.beginPath();

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { v4 as uuidv4 } from 'uuid';
+import { TemplateId } from '@/lib/templates';
 export type EffectId = 'pixelate' | 'rgbShift' | 'noise' | 'scanLines' | 'glitchLines';
 export type Effect = {
   id: EffectId;
@@ -15,6 +16,7 @@ export type Preset = {
 };
 type KintsugiState = {
   image: HTMLImageElement | null;
+  templateId: TemplateId | null;
   effects: {
     [key in EffectId]: Effect;
   };
@@ -22,6 +24,7 @@ type KintsugiState = {
 };
 type KintsugiActions = {
   setImage: (image: HTMLImageElement | null) => void;
+  setTemplate: (templateId: TemplateId | null) => void;
   toggleEffect: (id: EffectId) => void;
   setEffectParam: (id: EffectId, param: string, value: number) => void;
   resetEffects: () => void;
@@ -75,15 +78,17 @@ const initialEffectsState: KintsugiState['effects'] = {
     },
   },
 };
-const initialState: Omit<KintsugiState, 'presets'> = {
+const initialState: Omit<KintsugiState, 'presets' | 'effects'> = {
   image: null,
-  effects: JSON.parse(JSON.stringify(initialEffectsState)), // Deep copy
+  templateId: null,
 };
 export const useKintsugiStore = create<KintsugiState & KintsugiActions>()(
   immer((set, get) => ({
     ...initialState,
+    effects: JSON.parse(JSON.stringify(initialEffectsState)),
     presets: [],
-    setImage: (image) => set({ image }),
+    setImage: (image) => set({ image, templateId: null }),
+    setTemplate: (templateId) => set({ templateId, image: null }),
     toggleEffect: (id) => {
       set((state) => {
         state.effects[id].active = !state.effects[id].active;
