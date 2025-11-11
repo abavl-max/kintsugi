@@ -78,7 +78,8 @@ function updateWranglerJsonc() {
 
 function runSetupCommands() {
     const commands = [
-    "bun add react-dropzone@^14.2.3"
+    "bun add react-dropzone@^14.2.3",
+    "bun install react-dropzone"
 ];
     
     if (commands.length === 0) {
