@@ -1,55 +1,88 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
+import { v4 as uuidv4 } from 'uuid';
+export type EffectId = 'pixelate' | 'rgbShift' | 'noise' | 'scanLines' | 'glitchLines';
 export type Effect = {
-  id: 'pixelate' | 'rgbShift' | 'noise';
+  id: EffectId;
   name: string;
   active: boolean;
   params: { [key: string]: { value: number; min: number; max: number; step: number; label: string } };
 };
+export type Preset = {
+  id: string;
+  name: string;
+  effects: KintsugiState['effects'];
+};
 type KintsugiState = {
   image: HTMLImageElement | null;
   effects: {
-    [key in Effect['id']]: Effect;
+    [key in EffectId]: Effect;
   };
+  presets: Preset[];
 };
 type KintsugiActions = {
   setImage: (image: HTMLImageElement | null) => void;
-  toggleEffect: (id: Effect['id']) => void;
-  setEffectParam: (id: Effect['id'], param: string, value: number) => void;
+  toggleEffect: (id: EffectId) => void;
+  setEffectParam: (id: EffectId, param: string, value: number) => void;
   resetEffects: () => void;
+  loadPresets: () => void;
+  addPreset: (name: string) => void;
+  applyPreset: (id: string) => void;
+  deletePreset: (id: string) => void;
 };
-const initialState: KintsugiState = {
-  image: null,
-  effects: {
-    pixelate: {
-      id: 'pixelate',
-      name: 'Pixelate',
-      active: false,
-      params: {
-        blockSize: { value: 10, min: 1, max: 50, step: 1, label: 'Block Size' },
-      },
+const initialEffectsState: KintsugiState['effects'] = {
+  pixelate: {
+    id: 'pixelate',
+    name: 'Pixelate',
+    active: false,
+    params: {
+      blockSize: { value: 10, min: 1, max: 50, step: 1, label: 'Block Size' },
     },
-    rgbShift: {
-      id: 'rgbShift',
-      name: 'RGB Shift',
-      active: false,
-      params: {
-        offset: { value: 5, min: 0, max: 30, step: 1, label: 'Offset' },
-      },
+  },
+  rgbShift: {
+    id: 'rgbShift',
+    name: 'RGB Shift',
+    active: false,
+    params: {
+      offset: { value: 5, min: 0, max: 30, step: 1, label: 'Offset' },
     },
-    noise: {
-      id: 'noise',
-      name: 'Noise',
-      active: false,
-      params: {
-        amount: { value: 20, min: 0, max: 100, step: 1, label: 'Amount' },
-      },
+  },
+  noise: {
+    id: 'noise',
+    name: 'Noise',
+    active: false,
+    params: {
+      amount: { value: 20, min: 0, max: 100, step: 1, label: 'Amount' },
+    },
+  },
+  scanLines: {
+    id: 'scanLines',
+    name: 'Scan Lines',
+    active: false,
+    params: {
+      lineWidth: { value: 1, min: 1, max: 10, step: 1, label: 'Line Width' },
+      lineGap: { value: 4, min: 1, max: 20, step: 1, label: 'Line Gap' },
+      lineAlpha: { value: 0.1, min: 0, max: 1, step: 0.05, label: 'Line Alpha' },
+    },
+  },
+  glitchLines: {
+    id: 'glitchLines',
+    name: 'Glitch Lines',
+    active: false,
+    params: {
+      amount: { value: 5, min: 1, max: 30, step: 1, label: 'Amount' },
+      blockHeight: { value: 8, min: 1, max: 50, step: 1, label: 'Block Height' },
     },
   },
 };
+const initialState: Omit<KintsugiState, 'presets'> = {
+  image: null,
+  effects: JSON.parse(JSON.stringify(initialEffectsState)), // Deep copy
+};
 export const useKintsugiStore = create<KintsugiState & KintsugiActions>()(
-  immer((set) => ({
+  immer((set, get) => ({
     ...initialState,
+    presets: [],
     setImage: (image) => set({ image }),
     toggleEffect: (id) => {
       set((state) => {
@@ -62,9 +95,49 @@ export const useKintsugiStore = create<KintsugiState & KintsugiActions>()(
       });
     },
     resetEffects: () => {
-        set((state) => {
-            state.effects = initialState.effects;
-        });
-    }
+      set({ effects: JSON.parse(JSON.stringify(initialEffectsState)) });
+    },
+    loadPresets: () => {
+      try {
+        const storedPresets = localStorage.getItem('kintsugi-presets');
+        if (storedPresets) {
+          set({ presets: JSON.parse(storedPresets) });
+        }
+      } catch (error) {
+        console.error("Failed to load presets from localStorage", error);
+      }
+    },
+    addPreset: (name) => {
+      if (!name.trim()) return;
+      const newPreset: Preset = {
+        id: uuidv4(),
+        name,
+        effects: JSON.parse(JSON.stringify(get().effects)), // Deep copy current effects
+      };
+      set((state) => {
+        state.presets.push(newPreset);
+        try {
+          localStorage.setItem('kintsugi-presets', JSON.stringify(state.presets));
+        } catch (error) {
+          console.error("Failed to save presets to localStorage", error);
+        }
+      });
+    },
+    applyPreset: (id) => {
+      const preset = get().presets.find((p) => p.id === id);
+      if (preset) {
+        set({ effects: JSON.parse(JSON.stringify(preset.effects)) });
+      }
+    },
+    deletePreset: (id) => {
+      set((state) => {
+        state.presets = state.presets.filter((p) => p.id !== id);
+        try {
+          localStorage.setItem('kintsugi-presets', JSON.stringify(state.presets));
+        } catch (error) {
+          console.error("Failed to save presets to localStorage", error);
+        }
+      });
+    },
   }))
 );

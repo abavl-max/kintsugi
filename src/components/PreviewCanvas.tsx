@@ -1,8 +1,8 @@
 import React, { useRef, useEffect, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { useKintsugiStore } from '@/store/kintsugiStore';
-import { applyPixelate, applyRgbShift, applyNoise } from '@/lib/effects';
-import { UploadCloud, Image as ImageIcon } from 'lucide-react';
+import { applyPixelate, applyRgbShift, applyNoise, applyScanLines, applyGlitchLines } from '@/lib/effects';
+import { UploadCloud } from 'lucide-react';
 import { cn } from '@/lib/utils';
 export function PreviewCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -56,6 +56,19 @@ export function PreviewCanvas() {
     }
     if (effects.noise.active) {
       imageData = applyNoise(imageData, { amount: effects.noise.params.amount.value });
+    }
+    if (effects.scanLines.active) {
+      imageData = applyScanLines(imageData, { 
+        lineWidth: effects.scanLines.params.lineWidth.value,
+        lineGap: effects.scanLines.params.lineGap.value,
+        lineAlpha: effects.scanLines.params.lineAlpha.value,
+      });
+    }
+    if (effects.glitchLines.active) {
+        imageData = applyGlitchLines(imageData, {
+            amount: effects.glitchLines.params.amount.value,
+            blockHeight: effects.glitchLines.params.blockHeight.value,
+        });
     }
     ctx.putImageData(imageData, 0, 0);
   }, [image, effects]);

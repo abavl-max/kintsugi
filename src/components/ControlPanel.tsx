@@ -1,12 +1,13 @@
-import React from 'react';
-import { useKintsugiStore, Effect } from '@/store/kintsugiStore';
+import React, { useState, useEffect } from 'react';
+import { useKintsugiStore, Effect, Preset } from '@/store/kintsugiStore';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
-import { RotateCcw } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { RotateCcw, Trash2, Check, Save } from 'lucide-react';
 const EffectControls: React.FC<{ effect: Effect }> = ({ effect }) => {
   const toggleEffect = useKintsugiStore((s) => s.toggleEffect);
   const setEffectParam = useKintsugiStore((s) => s.setEffectParam);
@@ -27,7 +28,9 @@ const EffectControls: React.FC<{ effect: Effect }> = ({ effect }) => {
         <div key={paramKey} className="space-y-3">
           <div className="flex justify-between items-center">
             <Label htmlFor={`${effect.id}-${paramKey}-slider`}>{param.label}</Label>
-            <span className="text-sm font-mono text-muted-foreground w-12 text-right">{param.value.toFixed(0)}</span>
+            <span className="text-sm font-mono text-muted-foreground w-12 text-right">
+              {param.step < 1 ? param.value.toFixed(2) : param.value.toFixed(0)}
+            </span>
           </div>
           <Slider
             id={`${effect.id}-${paramKey}-slider`}
@@ -43,10 +46,38 @@ const EffectControls: React.FC<{ effect: Effect }> = ({ effect }) => {
     </div>
   );
 };
+const PresetItem: React.FC<{ preset: Preset }> = ({ preset }) => {
+  const applyPreset = useKintsugiStore((s) => s.applyPreset);
+  const deletePreset = useKintsugiStore((s) => s.deletePreset);
+  return (
+    <div className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50">
+      <span className="text-sm font-medium truncate pr-2">{preset.name}</span>
+      <div className="flex items-center gap-1">
+        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => applyPreset(preset.id)} aria-label={`Apply ${preset.name} preset`}>
+          <Check className="h-4 w-4" />
+        </Button>
+        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive/80 hover:text-destructive" onClick={() => deletePreset(preset.id)} aria-label={`Delete ${preset.name} preset`}>
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
+};
 export function ControlPanel() {
   const effects = useKintsugiStore((s) => s.effects);
   const resetEffects = useKintsugiStore((s) => s.resetEffects);
   const image = useKintsugiStore((s) => s.image);
+  const presets = useKintsugiStore((s) => s.presets);
+  const loadPresets = useKintsugiStore((s) => s.loadPresets);
+  const addPreset = useKintsugiStore((s) => s.addPreset);
+  const [presetName, setPresetName] = useState('');
+  useEffect(() => {
+    loadPresets();
+  }, [loadPresets]);
+  const handleSavePreset = () => {
+    addPreset(presetName);
+    setPresetName('');
+  };
   return (
     <aside className="w-full h-full bg-background border-r border-border flex flex-col">
       <header className="p-4 border-b border-border flex items-center justify-between">
@@ -64,6 +95,33 @@ export function ControlPanel() {
                 {Object.values(effects).map((effect) => (
                   <EffectControls key={effect.id} effect={effect} />
                 ))}
+              </AccordionContent>
+            </AccordionItem>
+            <AccordionItem value="presets">
+              <AccordionTrigger className="text-lg">Presets</AccordionTrigger>
+              <AccordionContent className="pt-4 space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="preset-name">Save Current Effects</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="preset-name"
+                      placeholder="Preset name..."
+                      value={presetName}
+                      onChange={(e) => setPresetName(e.target.value)}
+                      disabled={!image}
+                    />
+                    <Button onClick={handleSavePreset} disabled={!presetName.trim() || !image} aria-label="Save preset">
+                      <Save className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  {presets.length > 0 ? (
+                    presets.map((preset) => <PresetItem key={preset.id} preset={preset} />)
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-4">No presets saved yet.</p>
+                  )}
+                </div>
               </AccordionContent>
             </AccordionItem>
           </Accordion>
