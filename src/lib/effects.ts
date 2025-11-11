@@ -51,37 +51,3 @@ export function applyNoise(imageData: ImageData, { amount }: { amount: number })
   }
   return imageData;
 }
-export function applyScanLines(imageData: ImageData, { lineWidth, lineGap, lineAlpha }: { lineWidth: number, lineGap: number, lineAlpha: number }): ImageData {
-    const { data, height, width } = imageData;
-    const period = Math.floor(lineWidth) + Math.floor(lineGap);
-    if (period <= 0) return imageData;
-    for (let y = 0; y < height; y++) {
-        if (y % period < lineWidth) {
-            for (let x = 0; x < width; x++) {
-                const i = (y * width + x) * 4;
-                data[i] *= (1 - lineAlpha);
-                data[i + 1] *= (1 - lineAlpha);
-                data[i + 2] *= (1 - lineAlpha);
-            }
-        }
-    }
-    return imageData;
-}
-export function applyGlitchLines(imageData: ImageData, { amount, blockHeight }: { amount: number, blockHeight: number }): ImageData {
-    const { data, width, height } = imageData;
-    const h = Math.max(1, Math.floor(blockHeight));
-    for (let y = 0; y < height; y += h) {
-        if (Math.random() < 0.1) { // 10% chance to glitch a block
-            const shift = Math.floor((Math.random() - 0.5) * amount);
-            const block = data.subarray(y * width * 4, (y + h) * width * 4);
-            const shiftedBlock = new Uint8ClampedArray(block);
-            for (let i = 0; i < block.length; i++) {
-                let targetIndex = i + shift * 4;
-                if (targetIndex >= 0 && targetIndex < block.length) {
-                    block[i] = shiftedBlock[targetIndex];
-                }
-            }
-        }
-    }
-    return imageData;
-}
