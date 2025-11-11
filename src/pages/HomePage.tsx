@@ -4,13 +4,13 @@ import { PreviewCanvas } from '@/components/PreviewCanvas';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { useTheme } from '@/hooks/use-theme';
 export function HomePage() {
-  const { isDark } = useTheme();
+  const { isDark, toggleTheme } = useTheme();
   useEffect(() => {
     // Force dark theme for this application
     if (!isDark) {
-      document.documentElement.classList.add('dark');
+      toggleTheme();
     }
-  }, [isDark]);
+  }, [isDark, toggleTheme]);
   return (
     <div className="w-screen h-screen bg-background text-foreground overflow-hidden">
       <ResizablePanelGroup direction="horizontal" className="min-h-full min-w-full">

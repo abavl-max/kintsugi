@@ -1,6 +1,6 @@
 import React from 'react';
 import { useKintsugiStore } from '@/store/kintsugiStore';
-import { templates, TemplateId } from '@/lib/templates';
+import { templates, TemplateId } from '@/lib/templates.tsx';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 export function TemplateSelector() {

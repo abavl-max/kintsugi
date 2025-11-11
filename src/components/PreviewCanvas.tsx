@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { useKintsugiStore } from '@/store/kintsugiStore';
 import { applyPixelate, applyRgbShift, applyNoise, applyScanLines, applyGlitchLines } from '@/lib/effects';
-import { templates } from '@/lib/templates';
+import { templates } from '@/lib/templates.tsx';
 import { UploadCloud } from 'lucide-react';
 import { cn } from '@/lib/utils';
 export function PreviewCanvas() {

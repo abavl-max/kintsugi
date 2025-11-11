@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { v4 as uuidv4 } from 'uuid';
-import { TemplateId } from '@/lib/templates';
+import { TemplateId } from '@/lib/templates.tsx';
 export type EffectId = 'pixelate' | 'rgbShift' | 'noise' | 'scanLines' | 'glitchLines';
 export type Effect = {
   id: EffectId;
