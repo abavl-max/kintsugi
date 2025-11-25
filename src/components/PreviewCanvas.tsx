@@ -12,6 +12,8 @@ export function PreviewCanvas() {
   const effects = useKintsugiStore((s) => s.effects);
   const templateId = useKintsugiStore((s) => s.templateId);
   const onDrop = useCallback((acceptedFiles: File[]) => {
+    // If a template is active, ignore file drops to avoid replacing the template
+    if (templateId) return;
     const file = acceptedFiles[0];
     if (file) {
       const reader = new FileReader();
@@ -24,11 +26,12 @@ export function PreviewCanvas() {
       };
       reader.readAsDataURL(file);
     }
-  }, [setImage]);
+  }, [setImage, templateId]);
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: { 'image/*': ['.jpeg', '.png', '.gif', '.webp'] },
     multiple: false,
+    disabled: !!templateId,
     noClick: !!templateId,
     noKeyboard: !!templateId,
   });
@@ -58,42 +61,70 @@ export function PreviewCanvas() {
     } else {
         return; // No image or template, do nothing
     }
-    canvas.width = newWidth;
-    canvas.height = newHeight;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    // Draw source
+    // Make canvas size devicePixelRatio-aware to avoid CSS/device pixel mismatches
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.round(newWidth * dpr);
+    canvas.height = Math.round(newHeight * dpr);
+    // Keep CSS size in CSS pixels (so layout is correct) while internal buffer is high-res
+    canvas.style.width = `${newWidth}px`;
+    canvas.style.height = `${newHeight}px`;
+    // Reset any transforms and set a scale so drawing uses CSS-space coordinates
+    // (ctx.setTransform maps CSS pixels to device pixels)
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    // Save the DPR-scaled state so we can temporarily reset to identity for pixel ops
+    ctx.save();
+    // Clear using CSS-space dimensions (transform is set so this clears the whole buffer)
+    ctx.clearRect(0, 0, newWidth, newHeight);
+    // Draw source using CSS-space widths/heights so templates and drawImage render correctly
     if (image) {
-      ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+      ctx.drawImage(image, 0, 0, newWidth, newHeight);
     } else if (templateId && templates[templateId]) {
       ctx.fillStyle = '#0A0A0A'; // Match background
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      templates[templateId].draw(ctx, canvas.width, canvas.height);
+      ctx.fillRect(0, 0, newWidth, newHeight);
+      templates[templateId].draw(ctx, newWidth, newHeight);
     }
     // Apply effects
-    let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    if (effects.pixelate.active) {
-      imageData = applyPixelate(imageData, { blockSize: effects.pixelate.params.blockSize.value });
-    }
-    if (effects.rgbShift.active) {
-      imageData = applyRgbShift(imageData, { offset: effects.rgbShift.params.offset.value });
-    }
-    if (effects.noise.active) {
-      imageData = applyNoise(imageData, { amount: effects.noise.params.amount.value });
-    }
-    if (effects.scanLines.active) {
-      imageData = applyScanLines(imageData, {
-        lineWidth: effects.scanLines.params.lineWidth.value,
-        lineGap: effects.scanLines.params.lineGap.value,
-        lineAlpha: effects.scanLines.params.lineAlpha.value,
-      });
-    }
-    if (effects.glitchLines.active) {
-        imageData = applyGlitchLines(imageData, {
-            amount: effects.glitchLines.params.amount.value,
-            blockHeight: effects.glitchLines.params.blockHeight.value,
+    try {
+      // Effects operate on the full-resolution pixel buffer, so request device-pixel-sized image data
+      // Temporarily reset transform to identity so getImageData/putImageData operate in device pixels
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      if (effects.pixelate.active) {
+        imageData = applyPixelate(imageData, { blockSize: effects.pixelate.params.blockSize.value });
+      }
+      if (effects.rgbShift.active) {
+        imageData = applyRgbShift(imageData, { offset: effects.rgbShift.params.offset.value });
+      }
+      if (effects.noise.active) {
+        imageData = applyNoise(imageData, { amount: effects.noise.params.amount.value });
+      }
+      if (effects.scanLines.active) {
+        imageData = applyScanLines(imageData, {
+          lineWidth: effects.scanLines.params.lineWidth.value,
+          lineGap: effects.scanLines.params.lineGap.value,
+          lineAlpha: effects.scanLines.params.lineAlpha.value,
         });
+      }
+      if (effects.glitchLines.active) {
+        imageData = applyGlitchLines(imageData, {
+          amount: effects.glitchLines.params.amount.value,
+          blockHeight: effects.glitchLines.params.blockHeight.value,
+        });
+      }
+      ctx.putImageData(imageData, 0, 0);
+      // Restore the DPR-scaled transform state we saved earlier
+      ctx.restore();
+    } catch (e) {
+      // Canvas may be tainted (CORS) or another error occurred; fail gracefully
+      // eslint-disable-next-line no-console
+      console.warn('Unable to apply effects or read canvas pixels:', e);
+      try {
+        // Attempt to restore DPR-scaled state if an error occurred before restore
+        ctx.restore();
+      } catch (_) {
+        // ignore restore errors
+      }
     }
-    ctx.putImageData(imageData, 0, 0);
   }, [image, effects, templateId]);
   const isCanvasActive = !!image || !!templateId;
   return (
