@@ -2,7 +2,7 @@
 
 A creative sandbox for designers to apply controlled digital imperfections, transforming pristine designs into unique, authentic works of art.
 
-[cloudflarebutton]
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/abavl-max/kintsugi)
 
 ## About The Project
 
@@ -94,7 +94,7 @@ This application is designed for easy deployment to [Cloudflare Pages](https://p
 
 You can deploy directly by clicking the button below:
 
-[cloudflarebutton]
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/abavl-max/kintsugi)
 
 ### Manual Deployment with Wrangler
 
