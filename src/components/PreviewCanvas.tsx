@@ -89,26 +89,34 @@ export function PreviewCanvas() {
       // Temporarily reset transform to identity so getImageData/putImageData operate in device pixels
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      // Scale certain effect parameters by devicePixelRatio (dpr) so they operate in device pixels.
       if (effects.pixelate.active) {
-        imageData = applyPixelate(imageData, { blockSize: effects.pixelate.params.blockSize.value });
+        const blockSize = Math.max(1, Math.round(effects.pixelate.params.blockSize.value * dpr));
+        imageData = applyPixelate(imageData, { blockSize });
       }
       if (effects.rgbShift.active) {
-        imageData = applyRgbShift(imageData, { offset: effects.rgbShift.params.offset.value });
+        const offset = Math.round(effects.rgbShift.params.offset.value * dpr);
+        imageData = applyRgbShift(imageData, { offset });
       }
       if (effects.noise.active) {
+        // noise.amount should NOT be scaled by DPR
         imageData = applyNoise(imageData, { amount: effects.noise.params.amount.value });
       }
       if (effects.scanLines.active) {
+        const lineWidth = Math.max(1, Math.round(effects.scanLines.params.lineWidth.value * dpr));
+        const lineGap = Math.max(0, Math.round(effects.scanLines.params.lineGap.value * dpr));
         imageData = applyScanLines(imageData, {
-          lineWidth: effects.scanLines.params.lineWidth.value,
-          lineGap: effects.scanLines.params.lineGap.value,
+          lineWidth,
+          lineGap,
           lineAlpha: effects.scanLines.params.lineAlpha.value,
         });
       }
       if (effects.glitchLines.active) {
+        const amount = Math.round(effects.glitchLines.params.amount.value * dpr);
+        const blockHeight = Math.max(1, Math.round(effects.glitchLines.params.blockHeight.value * dpr));
         imageData = applyGlitchLines(imageData, {
-          amount: effects.glitchLines.params.amount.value,
-          blockHeight: effects.glitchLines.params.blockHeight.value,
+          amount,
+          blockHeight,
         });
       }
       ctx.putImageData(imageData, 0, 0);
